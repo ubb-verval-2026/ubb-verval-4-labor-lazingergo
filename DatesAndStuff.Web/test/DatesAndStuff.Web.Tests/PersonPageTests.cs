@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -97,18 +98,33 @@ public class PersonPageTests
         Assert.That(verificationErrors.ToString(), Is.EqualTo(""));
     }
 
-    [Test]
-    public void Person_SalaryIncrease_ShouldIncrease()
+    [TestCase(0, 5000)]
+    [TestCase(5, 5250)]
+    [TestCase(10, 5500)]
+    public void Person_SalaryIncrease_ShouldIncrease(double percentage, double expectedSalary)
     {
         // Arrange
         driver.Navigate().GoToUrl(BaseURL);
         driver.FindElement(By.XPath("//*[@data-test='PersonPageNavigation']")).Click();
 
         var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+        var inputLocator = By.XPath("//*[@data-test='SalaryIncreasePercentageInput']");
 
-        var input = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='SalaryIncreasePercentageInput']")));
-        input.Clear();
-        input.SendKeys("5");
+        IWebElement input = null!;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                input = wait.Until(ExpectedConditions.ElementIsVisible(inputLocator));
+                input.Clear();
+                input.SendKeys(percentage.ToString(CultureInfo.InvariantCulture));
+                break;
+            }
+            catch (StaleElementReferenceException) when (attempt < 2)
+            {
+                Thread.Sleep(100);
+            }
+        }
 
         // Act
         var submitButton = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']")));
@@ -118,7 +134,7 @@ public class PersonPageTests
         // Assert
         var salaryLabel = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='DisplayedSalary']")));
         var salaryAfterSubmission = double.Parse(salaryLabel.Text);
-        salaryAfterSubmission.Should().BeApproximately(5250, 0.001);
+        salaryAfterSubmission.Should().BeApproximately(expectedSalary, 0.001);
     }
     private bool IsElementPresent(By by)
     {
