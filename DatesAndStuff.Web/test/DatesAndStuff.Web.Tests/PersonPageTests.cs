@@ -156,7 +156,7 @@ public class PersonPageTests
                 input = wait.Until(ExpectedConditions.ElementIsVisible(inputLocator));
                 
                 var jsExecutor = (IJavaScriptExecutor)driver;
-                jsExecutor.ExecuteScript("arguments[0].value = '-15';", input);
+                jsExecutor.ExecuteScript("arguments[0].value = '-10';", input);
                 
                 jsExecutor.ExecuteScript("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", input);
                 
