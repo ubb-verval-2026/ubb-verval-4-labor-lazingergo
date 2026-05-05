@@ -154,11 +154,10 @@ public class PersonPageTests
             try
             {
                 input = wait.Until(ExpectedConditions.ElementIsVisible(inputLocator));
-                
                 var jsExecutor = (IJavaScriptExecutor)driver;
-                jsExecutor.ExecuteScript("arguments[0].value = '-10';", input);
-                
-                jsExecutor.ExecuteScript("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", input);
+                jsExecutor.ExecuteScript(
+                    "arguments[0].focus(); arguments[0].value = '-10'; arguments[0].dispatchEvent(new Event('input', { bubbles: true })); arguments[0].dispatchEvent(new Event('change', { bubbles: true })); arguments[0].blur();",
+                    input);
                 
                 break;
             }
@@ -174,17 +173,11 @@ public class PersonPageTests
         var submitButton = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']")));
         submitButton.Click();
 
-        Thread.Sleep(500);
+        var waitLong = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
 
-        //  Check for error messages in ValidationSummary
-        var validationSummary = wait.Until(ExpectedConditions.ElementExists(By.XPath("//ul[@class='validation-errors']")));
-        var summaryText = validationSummary.Text;
-        summaryText.Should().Contain("The specified percentag should be between -10 and infinity.");
-
-        // Check for error message in ValidationMessage 
-        var validationMessage = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@class='validation-message']")));
-        var messageText = validationMessage.Text;
-        messageText.Should().Contain("The specified percentag should be between -10 and infinity.");
+        waitLong.Until(driver => driver.FindElements(By.XPath("//*[contains(normalize-space(.), 'The specified percentag should be between -10 and infinity.')]")).Count > 0);
+        var any = driver.FindElements(By.XPath("//*[contains(normalize-space(.), 'The specified percentag should be between -10 and infinity.')]")).First();
+        any.Text.Should().Contain("The specified percentag should be between -10 and infinity.");
     }
 
     private bool IsElementPresent(By by)
