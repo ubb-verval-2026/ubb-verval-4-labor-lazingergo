@@ -136,6 +136,57 @@ public class PersonPageTests
         var salaryAfterSubmission = double.Parse(salaryLabel.Text);
         salaryAfterSubmission.Should().BeApproximately(expectedSalary, 0.001);
     }
+
+    [Test]
+    public void Person_SalaryIncrease_WithNegativeLargePercentage_ShouldShowErrors()
+    {
+        // Arrange
+        driver.Navigate().GoToUrl(BaseURL);
+        driver.FindElement(By.XPath("//*[@data-test='PersonPageNavigation']")).Click();
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+        var inputLocator = By.XPath("//*[@data-test='SalaryIncreasePercentageInput']");
+
+    
+        IWebElement input = null!;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                input = wait.Until(ExpectedConditions.ElementIsVisible(inputLocator));
+                
+                var jsExecutor = (IJavaScriptExecutor)driver;
+                jsExecutor.ExecuteScript("arguments[0].value = '-15';", input);
+                
+                jsExecutor.ExecuteScript("arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", input);
+                
+                break;
+            }
+            catch (StaleElementReferenceException) when (attempt < 2)
+            {
+                Thread.Sleep(100);
+            }
+        }
+
+        Thread.Sleep(500);
+
+        // Act
+        var submitButton = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']")));
+        submitButton.Click();
+
+        Thread.Sleep(500);
+
+        //  Check for error messages in ValidationSummary
+        var validationSummary = wait.Until(ExpectedConditions.ElementExists(By.XPath("//ul[@class='validation-errors']")));
+        var summaryText = validationSummary.Text;
+        summaryText.Should().Contain("The specified percentag should be between -10 and infinity.");
+
+        // Check for error message in ValidationMessage 
+        var validationMessage = wait.Until(ExpectedConditions.ElementExists(By.XPath("//*[@class='validation-message']")));
+        var messageText = validationMessage.Text;
+        messageText.Should().Contain("The specified percentag should be between -10 and infinity.");
+    }
+
     private bool IsElementPresent(By by)
     {
         try
